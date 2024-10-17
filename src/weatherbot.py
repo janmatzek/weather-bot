@@ -2,6 +2,8 @@ import dateparser
 import pandas as pd
 import requests
 import spacy
+import numpy as np
+from datetime import (datetime, timedelta)
 
 # Load the spaCy model
 nlp = spacy.load("en_core_web_sm")
@@ -10,6 +12,8 @@ def extract_entities(text):
     doc = nlp(text)
     dates = []
     locations = []
+
+    print(doc.ents)
 
     # Extract entities
     for ent in doc.ents:
@@ -62,7 +66,9 @@ def get_entire_day_weather(lon: float, lat: float, timezone: str, date: str):
 
     response = requests.get(url, body=params, timeout=10)
 
-def parse_weather_data(data: dict, how: str):
+
+
+def parse_weather_data(data: dict, how: str) -> pd.DataFrame:
     metrics = data[how]
     df_daily_weather = pd.DataFrame.from_dict(metrics)
     return df_daily_weather
@@ -83,9 +89,11 @@ def get_weather_data(
     url = "https://api.open-meteo.com/v1/forecast?"
 
     if timeframe == "daily":
-        metrics = "temperature_2m_max,temperature_2m_min,sunrise,sunset,precipitation_probability_max"
+        metrics = "temperature_2m_max,temperature_2m_min,sunrise,sunset,sunshine_duration,precipitation_probability_max,wind_speed_10m_max"
     elif timeframe == "hourly":
-        metrics = "temperature_2m,relative_humidity_2m,apparent_temperature,precipitation_probability,precipitation,cloud_cover,visibility",
+        metrics = "temperature_2m,relative_humidity_2m,apparent_temperature,precipitation_probability,precipitation,cloud_cover,visibility,",
+    else:
+        raise ValueError("Timeframe must be either 'daily' or 'hourly'")
 
     params = {
         "latitude": lat,
@@ -114,9 +122,66 @@ def get_weather_data(
     return weather_data
 
 
-def main():
-    user_input = input("Enter your text: ")
+def gather_input(prompt:str) -> str:
+    """Returns a string value of user input for a given prompt"""
+    return input(f"{prompt} ")
+
+
+def construct_weather_forecast(parsed_date: str, locations: str, weather_data: pd.DataFrame) -> str:
+    """
+    Constructs a weather forecast message based on the provided weather data.
+
+    Args:
+        parsed_date (str): The date of the weather forecast.
+        locations (str): The location for which the weather forecast is being generated.
+        weather_data (pd.DataFrame): The weather data containing information such as wind speed, temperature, and precipitation.
+
+    Returns:
+        str: The constructed weather forecast message.
+
+    """
+    wind_speed = weather_data['wind_speed_10m_max'][0]
+    max_temperature = weather_data['temperature_2m_max'][0]
+    min_temperature = weather_data['temperature_2m_min'][0]
+    rain_probability = weather_data['precipitation_probability_max'][0]
+
+    sunset = datetime.strptime(weather_data['sunset'][0], '%Y-%m-%dT%H:%M')
+    sunrise = datetime.strptime(weather_data['sunrise'][0], '%Y-%m-%dT%H:%M')   
+    
+    day_duration = (sunset - sunrise).total_seconds()
+    percent_sunshine = weather_data['sunshine_duration'][0] / day_duration
+
+    place_and_time = f"The weather in {locations} on {parsed_date.strftime("%Y-%d-%m")} will be "
+    sun_evaluation = f"{"sunny" if percent_sunshine > 0.5 else "cloudy"}. "
+    sunscreen_needed = f"{"" if percent_sunshine > 0.7 else "Better not forget the sunscreen!"}"
+    if wind_speed < 29:
+        wind = ""
+    elif wind_speed < 49:
+        wind = f"There will be moderate wind with a maximum speed of {wind_speed} km/h. "
+    else:
+        wind = f"There will be strong wind with a maximum speed of {wind_speed} km/h. "
+    temperature = f"with a maximum temperature of {max_temperature}°C and a minimum of {min_temperature}°C. "
+    rain = f"The probability of rain is {rain_probability}%. "
+    umbrella_needed = f"{"" if rain_probability < 50 else "You might want to bring an umbrella!"}"
+
+    response = f"{place_and_time}{sun_evaluation}{sunscreen_needed}{wind}{temperature}{rain}{umbrella_needed}"
+
+    return response
+
+def weather_bot(user_input: str) -> str:
+    """
+    Generates a weather forecast based on user input.
+
+    Args:
+        user_input (str): The user's input.
+
+    Returns:
+        str: The weather forecast.
+
+    """
     dates, locations = extract_entities(user_input)
+    # TODO: handle missing dates and locations
+    
     parsed_dates = parse_dates(dates)
     geo_data = geocode_location(locations)
     weather_data = get_weather_data(
@@ -127,14 +192,15 @@ def main():
         timeframe = "daily" # TODO: choose dynamically based on input
         )
 
-    print("Parsed Dates:", parsed_dates)
-    print("Locations:", locations)
-    print("Geographical Data:", geo_data)
-    print("Weather data:", weather_data)
+    forecast = construct_weather_forecast(parsed_dates[0], locations[0], weather_data)
+    return forecast
+
 
 
 if __name__ == "__main__":
-    main()
+    response = weather_bot("What will the weather be like in Prague tomorrow?")
+    print(response)
 
 
 #TODO: CLI - use plotext to draw charts of hourly weather data
+#TODO: Implement logging via loguru
