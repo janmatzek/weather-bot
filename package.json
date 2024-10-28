@@ -1,0 +1,27 @@
+{
+  "name": "weather-bot",
+  "version": "1.0.0",
+  "description": "# Meteo api: https://open-meteo.com/",
+  "main": "src/index.ts",
+  "scripts": {
+    "build": "npx tsc",
+    "start": "node dist/index.js",
+    "dev": "nodemon src/index.ts",
+    "test": "jest"
+  },
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "@jest/globals": "^29.7.0",
+    "@types/express": "^5.0.0",
+    "@types/node": "^22.8.1",
+    "compromise": "^14.14.2",
+    "compromise-dates": "^3.7.0",
+    "concurrently": "^9.0.1",
+    "jest": "^29.7.0",
+    "nodemon": "^3.1.7",
+    "ts-jest": "^29.2.5",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.6.3"
+  }
+}
