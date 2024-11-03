@@ -1,6 +1,6 @@
 import axios from "axios";
 import { GetDataParams } from "./types";
-
+import { DailyWeatherData, HourlyWeatherData } from "./types";
 /**
  *
  * @param GetDataParams - object containing URL, headers and params
@@ -17,15 +17,20 @@ export async function requestDataViaAxiosGet({
       headers,
       timeout: 3 * 1000,
     });
-    return response;
+    return response.data;
   } catch (error) {
     if (axios.isAxiosError(error)) {
-      console.log(error.message);
-      console.log(error.response?.data);
-      throw new Error(error.message);
+      throw new Error(
+        `Error fetching data: ${error.message}, ${error.response?.data}`
+      );
     } else {
-      console.error(error);
-      throw new Error("An error occurred while fetching data.");
+      throw new Error(`An error occurred while fetching data: ${error}`);
     }
   }
+}
+
+export function isDailyWeatherData(
+  data: DailyWeatherData | HourlyWeatherData
+): data is DailyWeatherData {
+  return (data as DailyWeatherData).temperature2mMax !== undefined;
 }

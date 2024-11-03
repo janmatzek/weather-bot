@@ -46,14 +46,14 @@ test("Get daily weather data", async () => {
     "daily"
   );
   expect(weatherData).toEqual({
-    time: ["2024-11-03"],
-    temperature_2m_max: [9.2],
-    temperature_2m_min: [1.0],
-    sunrise: ["2024-11-03T06:56"],
-    sunset: ["2024-11-03T16:35"],
-    sunshine_duration: [22724.99],
-    precipitation_probability_max: [0],
-    wind_speed_10m_max: [4.8],
+    time: "2024-11-03",
+    temperature2mMax: 9.2,
+    temperature2mMin: 1.0,
+    sunrise: "2024-11-03T06:56",
+    sunset: "2024-11-03T16:35",
+    sunshineDuration: 22724.99,
+    precipitationProbabilityMax: 0,
+    windSpeed10mMax: 4.8,
   });
 });
 

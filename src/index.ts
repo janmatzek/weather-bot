@@ -1,28 +1,22 @@
 import express, { Request, Response, NextFunction } from "express";
 import { findDates, findPlaces } from "./inputProcessing";
-import { geocodeLocation, getTimezone, getWeatherData } from "./weatherAndGeo";
+import { isDailyWeatherData } from "./utils";
+import {
+  geocodeLocation,
+  getTimezone,
+  getWeatherData,
+  generateDailyWeatherForecastMessage,
+} from "./weatherAndGeo";
 
 const app = express();
 const port = process.env.PORT || 3000;
 
 app.use(express.json());
-app.post(
-  "/test-dates",
-  async (req: Request, res: Response, next: NextFunction) => {
-    try {
-      const userInput =
-        "What will the weather be like in Prague on November 4th?";
-      const dates = findDates(userInput);
-      res.json({ dates });
-    } catch (error) {
-      next(error);
-    }
-  }
-);
 app.post("/test", async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const userInput =
-      "What will the weather be like in Prague on November 4th?";
+    const body = req.body;
+    const userInput = body.userInput;
+    console.log(userInput);
 
     const places = findPlaces(userInput);
     const place = places[0];
@@ -50,8 +44,19 @@ app.post("/test", async (req: Request, res: Response, next: NextFunction) => {
     );
 
     console.log(weatherData);
+    if (isDailyWeatherData(weatherData)) {
+      const weatherMessage = generateDailyWeatherForecastMessage(
+        weatherData,
+        geocodedLocation,
+        date
+      );
 
-    res.json({ message: "Test successful" });
+      console.log(weatherMessage);
+
+      res.json({ message: weatherMessage });
+    } else {
+      throw new Error("Hourly weather data not supported yet");
+    }
   } catch (error) {
     next(error);
   }
@@ -63,5 +68,5 @@ app.use((err: Error, req: Request, res: Response, next: NextFunction) => {
 });
 
 app.listen(port, () => {
-  console.log(`🦊 Server running at http://localhost:${port}`);
+  console.log(`🦊💻 Server running at http://localhost:${port}`);
 });
