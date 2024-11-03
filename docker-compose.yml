@@ -1,0 +1,7 @@
+services:
+  weather-bot-backend:
+    build: .
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./logs:/home/logs
