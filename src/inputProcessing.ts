@@ -13,7 +13,7 @@ export function findPlaces(input: string): Array<string> {
 export function findDates(input: string): Array<string> {
   const doc: any = nlp(input);
   const dates = doc.dates().json();
-  let fromattedDates: Array<string> = [];
+  const fromattedDates: Array<string> = [];
 
   for (let i = 0; i < dates.length; i++) {
     const date = dates[i].dates.start.split("T")[0];

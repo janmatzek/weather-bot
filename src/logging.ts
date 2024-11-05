@@ -1,7 +1,6 @@
 import winston from "winston";
-import fs from "fs";
 
-const logDir = "/home/logs";
+const LOG_DIR = process.env.LOG_DIR || "./logs";
 
 export function getLogger() {
   const logger = winston.createLogger({
@@ -16,7 +15,7 @@ export function getLogger() {
         ),
       }),
       new winston.transports.File({
-        filename: `${logDir}/server.log`,
+        filename: `${LOG_DIR}/server.log`,
         format: winston.format.combine(
           winston.format.timestamp({ format: "MMM-DD-YYYY HH:mm:ss" }),
           winston.format.align(),

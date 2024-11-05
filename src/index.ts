@@ -16,8 +16,8 @@ const port = process.env.PORT || 3000;
 
 app.use(express.json());
 app.get("/", async (req: Request, res: Response) => {
-  res.send("Hello, world!");
   logger.info("Hello, world!");
+  res.json({ message: "Hello, world!" });
 }),
   app.post("/test", async (req: Request, res: Response, next: NextFunction) => {
     try {
