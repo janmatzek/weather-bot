@@ -1,5 +1,9 @@
 import { requestDataViaAxiosGet } from './utils'
 import { Place, DailyWeatherData, HourlyWeatherData } from './types'
+import { getLogger } from './logging'
+import { GoogleGenerativeAI } from '@google/generative-ai'
+
+const logger = getLogger()
 
 const DEFAULT_HEADER = { 'User-Agent': 'weahterBot/1.0' }
 /** 
@@ -149,50 +153,72 @@ export async function getWeatherData(
  * @param {string} date
  * @returns
  */
-export function generateDailyWeatherForecastMessage(
+export async function generateDailyWeatherForecastMessage(
     weatherData: DailyWeatherData,
     place: Place,
     date: string
-): string {
+): Promise<string> {
     const sunriseDate = new Date(weatherData.sunrise)
     const sunsetDate = new Date(weatherData.sunset)
     const dayDurationSeconds =
         (sunsetDate.getTime() - sunriseDate.getTime()) / 1000
     const percentSunshine = weatherData.sunshineDuration / dayDurationSeconds
 
-    const placeAndTime = `The weather in ${place.name} on ${date} will be `
+    try {
+        const data = {
+            date: date,
+            place: place.name,
+            weaterData: {
+                ...weatherData,
+                percentSunshine,
+            },
+        }
+        const API_KEY = process.env.GEMINI_API_KEY
+        const gemini = new GoogleGenerativeAI(String(API_KEY))
+        const model = gemini.getGenerativeModel({ model: 'gemini-1.5-flash' })
 
-    const sunEvaluation = `${
-        percentSunshine >= 0.5 ? 'sunny ☀️' : 'cloudy ☁️'
-    }. `
-    const sunscreenNeeded = `${
-        percentSunshine >= 0.7 ? 'Better not forget the sunscreen! ' : ''
-    }`
+        const prompt = `create a message describing the weather based on this data: ${JSON.stringify(
+            data
+        )}`
+        const result = await model.generateContent(prompt)
 
-    let wind = ''
-    if (weatherData.windSpeed10mMax < 29) {
-        wind = ''
-    } else if (weatherData.windSpeed10mMax < 49) {
-        wind = `There will be moderate wind with a maximum speed of ${weatherData.windSpeed10mMax} km/h 💨. `
-    } else {
-        wind = `There will be strong wind with a maximum speed of ${weatherData.windSpeed10mMax} km/h 🌪️. `
+        return result.response.text()
+    } catch (error) {
+        logger.error('Error in generateDailyWeatherForecastMessage', error)
+        logger.info('Falling back to hardcoded message generation')
+        const placeAndTime = `The weather in ${place.name} on ${date} will be `
+
+        const sunEvaluation = `${
+            percentSunshine >= 0.5 ? 'sunny ☀️' : 'cloudy ☁️'
+        }. `
+        const sunscreenNeeded = `${
+            percentSunshine >= 0.7 ? 'Better not forget the sunscreen! ' : ''
+        }`
+
+        let wind = ''
+        if (weatherData.windSpeed10mMax < 29) {
+            wind = ''
+        } else if (weatherData.windSpeed10mMax < 49) {
+            wind = `There will be moderate wind with a maximum speed of ${weatherData.windSpeed10mMax} km/h 💨. `
+        } else {
+            wind = `There will be strong wind with a maximum speed of ${weatherData.windSpeed10mMax} km/h 🌪️. `
+        }
+
+        const temperature = `The maximum temperature will reach ${
+            weatherData.temperature2mMax
+        }°C ${
+            weatherData.temperature2mMax >= 30 ? '🥵' : ''
+        } and a minimum will be ${weatherData.temperature2mMin}°C ${
+            weatherData.temperature2mMin <= 0 ? '🥶' : ''
+        }. `
+        const rain = `The probability of rain is ${weatherData.precipitationProbabilityMax}%. `
+        const umbrellaNeeded = `${
+            weatherData.precipitationProbabilityMax < 50
+                ? ''
+                : 'You might want to bring an umbrella! ☔️ '
+        }`
+
+        const weatherForecast = `${placeAndTime}${sunEvaluation}${sunscreenNeeded}${wind}${temperature}${rain}${umbrellaNeeded}`
+        return weatherForecast
     }
-
-    const temperature = `The maximum temperature will reach ${
-        weatherData.temperature2mMax
-    }°C ${
-        weatherData.temperature2mMax >= 30 ? '🥵' : ''
-    } and a minimum will be ${weatherData.temperature2mMin}°C ${
-        weatherData.temperature2mMin <= 0 ? '🥶' : ''
-    }. `
-    const rain = `The probability of rain is ${weatherData.precipitationProbabilityMax}%. `
-    const umbrellaNeeded = `${
-        weatherData.precipitationProbabilityMax < 50
-            ? ''
-            : 'You might want to bring an umbrella! ☔️ '
-    }`
-
-    const weatherForecast = `${placeAndTime}${sunEvaluation}${sunscreenNeeded}${wind}${temperature}${rain}${umbrellaNeeded}`
-
-    return weatherForecast
 }

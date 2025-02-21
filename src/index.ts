@@ -9,6 +9,7 @@ import {
     getWeatherData,
     generateDailyWeatherForecastMessage,
 } from './weatherAndGeo'
+import 'dotenv/config'
 
 const logger = getLogger()
 logger.info('Starting server...')
@@ -66,11 +67,12 @@ app.post(
             )
 
             if (isDailyWeatherData(weatherData)) {
-                const weatherMessage = generateDailyWeatherForecastMessage(
-                    weatherData,
-                    geocodedLocation,
-                    date
-                )
+                const weatherMessage =
+                    await generateDailyWeatherForecastMessage(
+                        weatherData,
+                        geocodedLocation,
+                        date
+                    )
 
                 res.json({ message: weatherMessage })
             } else {
