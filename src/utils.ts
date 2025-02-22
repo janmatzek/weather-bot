@@ -24,7 +24,9 @@ export async function requestDataViaAxiosGet({
                 `Error fetching data: ${error.message}, ${error.response?.data}`
             )
         } else {
-            throw new Error(`An error occurred while fetching data: ${error}`)
+            throw new Error(
+                `An error occurred while fetching data from ${url}: ${error}`
+            )
         }
     }
 }

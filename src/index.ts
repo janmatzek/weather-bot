@@ -14,23 +14,37 @@ import 'dotenv/config'
 const logger = getLogger()
 logger.info('Starting server...')
 const app = express()
-app.use(cors())
+
+const frontendUrl = process.env.FRONTEND_URL
+
+if (!frontendUrl) {
+    throw new Error('FRONTEND_URL environment variable not set')
+}
+
+app.use(
+    cors({
+        origin: [frontendUrl, 'http://localhost:5173'],
+        methods: 'GET,POST,PUT,DELETE,OPTIONS',
+        allowedHeaders: 'Content-Type',
+    })
+)
+
 const port = process.env.PORT || 3000
 
 app.use(express.json())
-app.get('/', async (req: Request, res: Response) => {
+app.get('/api/', async (req: Request, res: Response) => {
     logger.info(`Endpoint called: ${req.url}`)
     res.json({ app: 'WeatherBot backend' })
 })
-app.get('/health', async (req: Request, res: Response) => {
+app.get('/api/health', async (req: Request, res: Response) => {
     logger.info(`Endpoint called: ${req.url}`)
     res.json({ status: 'healthy' })
 })
 app.post(
-    '/forecast',
+    '/api/forecast',
     async (req: Request, res: Response, next: NextFunction) => {
         try {
-            logger.info('Received request on endpoint /test')
+            logger.info(`Endpoint called: ${req.url}`)
             const body = req.body
             const userInput = body.userInput
             if (!userInput) {
@@ -83,7 +97,7 @@ app.post(
                 throw new Error('Hourly weather data not supported yet')
             }
         } catch (error) {
-            logger.error('Error in /test endpoint', error)
+            logger.error(`Error in ${req.url} endpoint`, error)
             next(error)
         }
     }
