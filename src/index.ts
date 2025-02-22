@@ -19,8 +19,12 @@ const port = process.env.PORT || 3000
 
 app.use(express.json())
 app.get('/', async (req: Request, res: Response) => {
-    logger.info('Hello, world!')
-    res.json({ message: 'Hello, world!' })
+    logger.info(`Endpoint called: ${req.url}`)
+    res.json({ app: 'WeatherBot backend' })
+})
+app.get('/health', async (req: Request, res: Response) => {
+    logger.info(`Endpoint called: ${req.url}`)
+    res.json({ status: 'healthy' })
 })
 app.post(
     '/forecast',
