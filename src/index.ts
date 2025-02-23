@@ -43,8 +43,10 @@ app.get('/api/health', async (req: Request, res: Response) => {
 app.post(
     '/api/forecast',
     async (req: Request, res: Response, next: NextFunction) => {
+        logger.info(`Endpoint called: ${req.url}`)
         try {
-            logger.info(`Endpoint called: ${req.url}`)
+            // TODO: Wrap this into a function and call it from here
+            // TODO: Let Gemini parse the input instead of compromise
             const body = req.body
             const userInput = body.userInput
             if (!userInput) {
