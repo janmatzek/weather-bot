@@ -15,7 +15,7 @@ export async function requestDataViaAxiosGet({
         const response = await axios.get(url, {
             params,
             headers,
-            timeout: 3 * 1000,
+            timeout: 5 * 1000,
         })
         return response.data
     } catch (error) {
