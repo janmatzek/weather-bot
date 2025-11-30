@@ -1,0 +1,6 @@
+services:
+    web-builder:
+        build: .
+        volumes:
+            - ./dist:/app/dist
+        command: sh -c "npm run build"
