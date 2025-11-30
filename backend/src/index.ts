@@ -15,7 +15,7 @@ const logger = getLogger()
 logger.info('Starting server...')
 const app = express()
 
-const frontendUrl = process.env.FRONTEND_URL
+const frontendUrl: string | undefined = process.env.FRONTEND_URL
 
 if (!frontendUrl) {
     throw new Error('FRONTEND_URL environment variable not set')

@@ -1,5 +1,7 @@
 # Weather bot
 
+<!-- TODO: This needs to be changed accordingly to the refactor -->
+
 This is a repository for the back and of the _"WeatherBot"_ app.
 It uses [Compromise](https://compromise.cool) to parse out dates and city names from a text input.
 
