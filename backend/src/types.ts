@@ -33,3 +33,36 @@ export type HourlyWeatherData = {
     cloudCover: Array<number>
     visibility: Array<number>
 }
+
+export type WeatherData = DailyWeatherData | HourlyWeatherData
+
+export type RequestBody = {
+    userInput: string
+}
+
+export type Message = {
+    message: string
+}
+
+export type ForecastParams = {
+    place: string
+    startDate: string
+    endDate: string
+}
+
+export type TelegramConfig = {
+    llmApiKey: string
+    telegramBotToken: string
+}
+
+type StreamChunk = {
+    type: 'text'
+    chunk: string
+}
+
+type StreamStatus = {
+    type: 'status'
+    status: string
+}
+
+export type StreamEvent = StreamChunk | StreamStatus

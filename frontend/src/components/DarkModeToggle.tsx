@@ -23,7 +23,6 @@ export const DarkModeToggle = () => {
     return (
         <>
             <label className="swap swap-rotate">
-                {/* this hidden checkbox controls the state */}
                 <input type="checkbox" onChange={toggleTheme} />
                 {/* moon icon */}
                 <svg

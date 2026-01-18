@@ -1,0 +1,29 @@
+services:
+  backend:
+    build:
+      context: .
+      dockerfile: dockerfile.backend
+    ports:
+      - "${BACKEND_PORT:-3000}:3000"
+    environment:
+      - FRONTEND_URL=${FRONTEND_URL:-"http://localhost:8080/"}
+      - FF_TELEGRAM=${FF_TELEGRAM}
+      - LLM_API_KEY=${LLM_API_KEY}
+      - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN}
+      - TELEGRAM_BOT_API_SECRET_TOKEN=${TELEGRAM_BOT_API_SECRET_TOKEN}
+    restart: unless-stopped
+    networks:
+      - frontend_net
+
+  frontend:
+    build:
+      context: .
+      dockerfile: dockerfile.frontend
+    ports:
+      - "${FRONTEND_PORT:-8080}:8080"
+    restart: unless-stopped
+    networks:
+      - frontend_net
+
+networks:
+  frontend_net: {}
