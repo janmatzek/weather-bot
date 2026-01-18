@@ -1,0 +1,10 @@
+- [x] Update readmes, do 1 readme for the monorepo
+- [x] Set up a docker compose for entire project, document it in readme
+- [x] Frontend is "Thinking..." while waiting for a ChatGPT response, giving info about tool updates etc
+- [x] Fix: API key is saved when "close" button is pressed
+- [x] Refactor to have clean App.tsx
+- [] Check out what meteo response looks like for multiple days
+  - [] Make sure this is well-enough documented for the LLM to understand
+- [] BUG: Queries like "this weekend" tend to get wrong dates.
+- [] Use conversation history
+- [] Add link to git in the footer.

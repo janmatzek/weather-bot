@@ -1,0 +1,34 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "type": "node",
+      "request": "launch",
+      "name": "Debug agent",
+      "runtimeArgs": ["-r", "ts-node/register"],
+      "args": ["${workspaceFolder}/backend/src/agent.ts"],
+      "cwd": "${workspaceFolder}",
+      "sourceMaps": true,
+      "skipFiles": ["<node_internals>/**"]
+    },
+    {
+      "type": "node",
+      "request": "launch",
+      "name": "Debug Backend (TS)",
+      "program": "${workspaceFolder}/backend/dist/agent.js",
+      "cwd": "${workspaceFolder}/backend",
+      "sourceMaps": true,
+      "outFiles": ["${workspaceFolder}/backend/dist/**/*.js"],
+      "envFile": "${workspaceFolder}/.env",
+      "resolveSourceMapLocations": [
+        "${workspaceFolder}/backend/dist/**/*.js",
+        "${workspaceFolder}/backend/src/**/*.ts",
+        "!**/node_modules/**"
+      ],
+      "skipFiles": [
+        "<node_internals>/**",
+        "${workspaceFolder}/backend/node_modules/**"
+      ]
+    }
+  ]
+}

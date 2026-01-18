@@ -1,18 +1,26 @@
-import { requestDataViaAxiosGet } from './utils'
-import { Place, DailyWeatherData, HourlyWeatherData } from './types'
-import { getLogger } from './logging'
-import { GoogleGenerativeAI } from '@google/generative-ai'
+import { axiosGet } from '../utils'
+import {
+    Place,
+    DailyWeatherData,
+    HourlyWeatherData,
+    WeatherData,
+} from '../types'
+import { getLogger } from '../logging'
+import { OpenAI } from 'openai'
+import '@photostructure/tz-lookup'
+import tz_lookup from '@photostructure/tz-lookup'
 
 const logger = getLogger()
 
 const DEFAULT_HEADER = { 'User-Agent': 'weahterBot/1.0' }
+
 /** 
     Geocodes the given city name using the Nominatim API: https://nominatim.openstreetmap.org/search
     @param {string} cityName The name of the city to geocode.
     @returns {Promise<Place>} 
     **/
 export async function geocodeLocation(cityName: string): Promise<Place> {
-    const url = 'https://nominatim.openstreetmap.org/search'
+    const NOMINATIM_URL = 'https://nominatim.openstreetmap.org/search'
 
     const params = {
         q: cityName,
@@ -20,10 +28,12 @@ export async function geocodeLocation(cityName: string): Promise<Place> {
         addressdetails: 1,
         limit: 1,
     }
-
     const headers = DEFAULT_HEADER
 
-    const places = await requestDataViaAxiosGet({ url, headers, params })
+    console.log(`Geocoding location for city: ${cityName}`)
+    console.log(`Nominatim request params: ${JSON.stringify(params)}`)
+
+    const places = await axiosGet({ url: NOMINATIM_URL, headers, params })
 
     if (!places || places.length === 0) {
         throw new Error(`No geocoded information found for ${cityName}`)
@@ -45,27 +55,11 @@ export async function geocodeLocation(cityName: string): Promise<Place> {
  * Requests timezone for specified latitude and longitude from https://www.geotimezone.com/
  * @param latitude
  * @param longitude
- * @returns <Promise<string>> Timezone abbreviation
+ * @returns IANA timezone
  */
-export async function getTimezone(
-    latitude: number,
-    longitude: number
-): Promise<string> {
-    const url = 'https://api.geotimezone.com/public/timezone'
-    const params = { latitude, longitude }
-    const headers = DEFAULT_HEADER
-
-    const timezoneData = await requestDataViaAxiosGet({
-        url,
-        headers,
-        params,
-    })
-
-    if (!timezoneData || !timezoneData.iana_timezone) {
-        throw new Error(`No timezone data found for ${latitude}, ${longitude}`)
-    }
-
-    return timezoneData.iana_timezone
+export function getTimezone(latitude: number, longitude: number): string {
+    const timezone = tz_lookup(latitude, longitude)
+    return timezone
 }
 
 /** Requests weather data from https://open-meteo.com/
@@ -79,9 +73,10 @@ export async function getWeatherData(
     latitude: number,
     longitude: number,
     timezone: string,
-    date: string,
+    startDate: string,
+    endDate: string,
     timeframe: 'daily' | 'hourly'
-): Promise<DailyWeatherData | HourlyWeatherData> {
+): Promise<WeatherData> {
     const url = 'https://api.open-meteo.com/v1/forecast'
 
     let metrics = {}
@@ -104,11 +99,11 @@ export async function getWeatherData(
         longitude: longitude,
         ...metrics,
         timezone: timezone,
-        start_date: date,
-        end_date: date,
+        start_date: startDate,
+        end_date: endDate,
     }
 
-    const meteoData = await requestDataViaAxiosGet({ url, headers, params })
+    const meteoData = await axiosGet({ url, headers, params })
 
     if (!meteoData || !meteoData[timeframe]) {
         throw new Error('No weather data found in meteodata response')
@@ -164,61 +159,38 @@ export async function generateDailyWeatherForecastMessage(
         (sunsetDate.getTime() - sunriseDate.getTime()) / 1000
     const percentSunshine = weatherData.sunshineDuration / dayDurationSeconds
 
-    try {
-        const data = {
-            date: date,
-            place: place.name,
-            weaterData: {
-                ...weatherData,
-                percentSunshine,
-            },
-        }
-        const API_KEY = process.env.GEMINI_API_KEY
-        const gemini = new GoogleGenerativeAI(String(API_KEY))
-        const model = gemini.getGenerativeModel({ model: 'gemini-1.5-flash' })
+    const placeAndTime = `The weather in ${place.name} on ${date} will be `
 
-        const prompt = `create a message describing the weather based on this data: ${JSON.stringify(
-            data
-        )}`
-        const result = await model.generateContent(prompt)
+    const sunEvaluation = `${
+        percentSunshine >= 0.5 ? 'sunny ☀️' : 'cloudy ☁️'
+    }. `
+    const sunscreenNeeded = `${
+        percentSunshine >= 0.7 ? 'Better not forget the sunscreen! ' : ''
+    }`
 
-        return result.response.text()
-    } catch (error) {
-        logger.error('Error in generateDailyWeatherForecastMessage', error)
-        logger.info('Falling back to hardcoded message generation')
-        const placeAndTime = `The weather in ${place.name} on ${date} will be `
-
-        const sunEvaluation = `${
-            percentSunshine >= 0.5 ? 'sunny ☀️' : 'cloudy ☁️'
-        }. `
-        const sunscreenNeeded = `${
-            percentSunshine >= 0.7 ? 'Better not forget the sunscreen! ' : ''
-        }`
-
-        let wind = ''
-        if (weatherData.windSpeed10mMax < 29) {
-            wind = ''
-        } else if (weatherData.windSpeed10mMax < 49) {
-            wind = `There will be moderate wind with a maximum speed of ${weatherData.windSpeed10mMax} km/h 💨. `
-        } else {
-            wind = `There will be strong wind with a maximum speed of ${weatherData.windSpeed10mMax} km/h 🌪️. `
-        }
-
-        const temperature = `The maximum temperature will reach ${
-            weatherData.temperature2mMax
-        }°C ${
-            weatherData.temperature2mMax >= 30 ? '🥵' : ''
-        } and a minimum will be ${weatherData.temperature2mMin}°C ${
-            weatherData.temperature2mMin <= 0 ? '🥶' : ''
-        }. `
-        const rain = `The probability of rain is ${weatherData.precipitationProbabilityMax}%. `
-        const umbrellaNeeded = `${
-            weatherData.precipitationProbabilityMax < 50
-                ? ''
-                : 'You might want to bring an umbrella! ☔️ '
-        }`
-
-        const weatherForecast = `${placeAndTime}${sunEvaluation}${sunscreenNeeded}${wind}${temperature}${rain}${umbrellaNeeded}`
-        return weatherForecast
+    let wind = ''
+    if (weatherData.windSpeed10mMax < 29) {
+        wind = ''
+    } else if (weatherData.windSpeed10mMax < 49) {
+        wind = `There will be moderate wind with a maximum speed of ${weatherData.windSpeed10mMax} km/h 💨. `
+    } else {
+        wind = `There will be strong wind with a maximum speed of ${weatherData.windSpeed10mMax} km/h 🌪️. `
     }
+
+    const temperature = `The maximum temperature will reach ${
+        weatherData.temperature2mMax
+    }°C ${
+        weatherData.temperature2mMax >= 30 ? '🥵' : ''
+    } and a minimum will be ${weatherData.temperature2mMin}°C ${
+        weatherData.temperature2mMin <= 0 ? '🥶' : ''
+    }. `
+    const rain = `The probability of rain is ${weatherData.precipitationProbabilityMax}%. `
+    const umbrellaNeeded = `${
+        weatherData.precipitationProbabilityMax < 50
+            ? ''
+            : 'You might want to bring an umbrella! ☔️ '
+    }`
+
+    const weatherForecast = `${placeAndTime}${sunEvaluation}${sunscreenNeeded}${wind}${temperature}${rain}${umbrellaNeeded}`
+    return weatherForecast
 }
